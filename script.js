@@ -105,8 +105,10 @@ $("#orderForm").addEventListener("submit", e => {
 // Nav
 const nav = $("#nav"), burger = $("#burger"), links = $("#links");
 addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 30), { passive: true });
-burger.onclick = () => { burger.classList.toggle("open"); links.classList.toggle("open"); };
-links.addEventListener("click", e => { if (e.target.tagName === "A") { burger.classList.remove("open"); links.classList.remove("open"); } });
+const setMenu = o => { burger.classList.toggle("open", o); links.classList.toggle("open", o); document.body.classList.toggle("menu", o); document.body.style.overflow = o ? "hidden" : ""; };
+burger.onclick = () => setMenu(!links.classList.contains("open"));
+links.addEventListener("click", e => { if (e.target.tagName === "A") setMenu(false); });
+addEventListener("resize", () => innerWidth > 720 && setMenu(false));
 
 // Mobile: story toggle + step tiles
 const moreBtn = $("#moreBtn");
