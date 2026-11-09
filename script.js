@@ -21,6 +21,7 @@ const PRODUCTS = [
   { img: 15, name: "Harvest Camp",    type: "shirt" },
 ];
 
+const DIM = {9:[591,796],10:[691,1100],3:[825,1100],7:[825,1100],12:[825,1100],16:[825,1100]};
 const $ = (s, r = document) => r.querySelector(s);
 const wa = text => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 const label = t => (t === "shirt" ? "Shirt" : "Fabric");
@@ -39,7 +40,7 @@ PRODUCTS.forEach((p, i) => {
   el.tabIndex = 0;
   el.dataset.type = p.type;
   el.style.transitionDelay = `${(i % 4) * 90}ms`;
-  el.innerHTML = `<img src="images/p${p.img}.jpg" alt="${p.name}" loading="lazy">
+  el.innerHTML = `<img src="images/p${p.img}-s.webp" alt="${p.name}" loading="lazy" decoding="async" width="${(DIM[p.img]||[817,1100])[0]}" height="${(DIM[p.img]||[817,1100])[1]}">
     <span class="tag">${label(p.type)}</span>
     <div class="cap"><h3>${p.name}</h3><span>Tap to order</span></div>`;
   el.addEventListener("click", () => openLB(p));
@@ -73,7 +74,7 @@ filters.addEventListener("click", e => {
 // Lightbox
 const lb = $("#lb");
 function openLB(p) {
-  $("#lbImg").src = `images/p${p.img}.jpg`;
+  $("#lbImg").src = `images/p${p.img}.webp`;
   $("#lbImg").alt = p.name;
   $("#lbTitle").textContent = p.name;
   $("#lbType").textContent = label(p.type);
@@ -104,7 +105,8 @@ $("#orderForm").addEventListener("submit", e => {
 
 // Nav
 const nav = $("#nav"), burger = $("#burger"), links = $("#links");
-addEventListener("scroll", () => nav.classList.toggle("scrolled", scrollY > 30), { passive: true });
+let sc = false;
+addEventListener("scroll", () => { if (sc) return; sc = true; requestAnimationFrame(() => { nav.classList.toggle("scrolled", scrollY > 30); sc = false; }); }, { passive: true });
 const setMenu = o => { burger.classList.toggle("open", o); links.classList.toggle("open", o); document.body.classList.toggle("menu", o); document.body.style.overflow = o ? "hidden" : ""; };
 burger.onclick = () => setMenu(!links.classList.contains("open"));
 links.addEventListener("click", e => { if (e.target.tagName === "A") setMenu(false); });
@@ -121,12 +123,15 @@ document.querySelectorAll(".step").forEach(s => s.addEventListener("click", () =
   if (innerWidth <= 720) s.classList.toggle("open");
 }));
 
-// Hero parallax
-const art = document.querySelectorAll(".hero-art .card");
-addEventListener("mousemove", e => {
-  const x = (e.clientX / innerWidth - .5), y = (e.clientY / innerHeight - .5);
-  art.forEach((c, i) => c.style.translate = `${x * (i + 1) * -14}px ${y * (i + 1) * -14}px`);
-}, { passive: true });
+// Hero parallax (desktop pointers only, throttled)
+if (matchMedia("(hover:hover) and (pointer:fine)").matches) {
+  const art = document.querySelectorAll(".hero-art .card");
+  let mx = 0, my = 0, tick = false;
+  addEventListener("mousemove", e => {
+    mx = e.clientX / innerWidth - .5; my = e.clientY / innerHeight - .5;
+    if (!tick) { tick = true; requestAnimationFrame(() => { art.forEach((c, i) => c.style.translate = `${mx * (i + 1) * -14}px ${my * (i + 1) * -14}px`); tick = false; }); }
+  }, { passive: true });
+}
 
 // Loader
 addEventListener("load", () => {
