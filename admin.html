@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Elormdiz Admin</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- Login -->
+<section id="login" class="center" hidden>
+  <form id="loginForm" class="card narrow">
+    <h1 class="logo">Elormdiz</h1>
+    <p class="muted">Admin sign in</p>
+    <label>Email<input type="email" name="email" required autocomplete="username"></label>
+    <label>Password<input type="password" name="password" required autocomplete="current-password"></label>
+    <button class="btn" type="submit">Sign in</button>
+    <p class="msg" id="loginMsg" role="alert"></p>
+  </form>
+</section>
+
+<!-- Dashboard -->
+<div id="app" hidden>
+  <header class="bar">
+    <span class="logo">Elormdiz <small>Admin</small></span>
+    <span class="bar-actions">
+      <a href="index.html" target="_blank" class="link">View site</a>
+      <button class="btn btn-ghost btn-sm" id="logout" type="button">Sign out</button>
+    </span>
+  </header>
+
+  <main class="wrap">
+    <form id="addForm" class="card">
+      <h2>Add a product</h2>
+      <div class="add-grid">
+        <label class="drop" id="drop">
+          <input type="file" id="file" accept="image/*" required>
+          <img id="preview" alt="" hidden>
+          <span id="dropText">Tap to choose a photo</span>
+        </label>
+        <div class="fields">
+          <label>Name<input name="name" required maxlength="60" placeholder="e.g. Sunset Swirl"></label>
+          <label>Type
+            <select name="type">
+              <option value="shirt">Shirt</option>
+              <option value="cloth">Fabric</option>
+            </select>
+          </label>
+          <button class="btn" id="addBtn" type="submit">Upload &amp; publish</button>
+          <p class="msg" id="addMsg" role="status"></p>
+        </div>
+      </div>
+    </form>
+
+    <h2 class="list-title">Your products <span id="count" class="muted"></span></h2>
+    <p class="muted small">Use the arrows to change the order. Changes appear on the website straight away.</p>
+    <div id="list" class="list"></div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="config.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>

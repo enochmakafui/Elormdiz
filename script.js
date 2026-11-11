@@ -1,27 +1,19 @@
 // ====== CONFIG ======
 // Replace with her WhatsApp number: country code + number, digits only (no + or spaces)
-const WHATSAPP_NUMBER = "233000000000";
+const WHATSAPP_NUMBER = "233591007998";
 
-const PRODUCTS = [
-  { img: 1,  name: "Emerald Sun",     type: "shirt" },
-  { img: 3,  name: "Royal Violet Trio", type: "cloth" },
-  { img: 2,  name: "Lilac Storm",     type: "shirt" },
-  { img: 5,  name: "Violet Horizon",  type: "shirt" },
-  { img: 7,  name: "Golden Hour Trio", type: "cloth" },
-  { img: 4,  name: "Jade Cloud",      type: "shirt" },
-  { img: 6,  name: "Amethyst Dusk",   type: "shirt" },
-  { img: 12, name: "Teal Tide Trio",  type: "cloth" },
-  { img: 8,  name: "Midnight Gold",   type: "shirt" },
-  { img: 10, name: "Indigo Wave",     type: "shirt" },
-  { img: 9,  name: "Ember Bloom",     type: "shirt" },
-  { img: 16, name: "Blue & Blush Trio", type: "cloth" },
-  { img: 11, name: "Marigold Dip",    type: "shirt" },
-  { img: 13, name: "Sky Dip",         type: "shirt" },
-  { img: 14, name: "Orchid Haze",     type: "shirt" },
-  { img: 15, name: "Harvest Camp",    type: "shirt" },
-];
-
+// Fallback catalogue, shown only if Supabase isn't configured or can't be reached.
+// Live products are managed from admin.html.
 const DIM = {9:[591,796],10:[691,1100],3:[825,1100],7:[825,1100],12:[825,1100],16:[825,1100]};
+const FALLBACK = [
+  [1,"Emerald Sun","shirt"],[3,"Royal Violet Trio","cloth"],[2,"Lilac Storm","shirt"],[5,"Violet Horizon","shirt"],
+  [7,"Golden Hour Trio","cloth"],[4,"Jade Cloud","shirt"],[6,"Amethyst Dusk","shirt"],[12,"Teal Tide Trio","cloth"],
+  [8,"Midnight Gold","shirt"],[10,"Indigo Wave","shirt"],[9,"Ember Bloom","shirt"],[16,"Blue & Blush Trio","cloth"],
+  [11,"Marigold Dip","shirt"],[13,"Sky Dip","shirt"],[14,"Orchid Haze","shirt"],[15,"Harvest Camp","shirt"],
+].map(([n, name, type]) => {
+  const [width, height] = DIM[n] || [817, 1100];
+  return { name, type, thumb: `images/p${n}-s.webp`, full: `images/p${n}.webp`, width, height };
+});
 const $ = (s, r = document) => r.querySelector(s);
 const wa = text => `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`;
 const label = t => (t === "shirt" ? "Shirt" : "Fabric");
@@ -32,21 +24,44 @@ $("#fab").href = wa(hello);
 $("#waDirect").href = wa(hello);
 $("#yr").textContent = new Date().getFullYear();
 
+// Products (Supabase REST, no client library needed on the public site)
+const SB = (typeof SUPABASE_URL !== "undefined" && SUPABASE_URL) ? SUPABASE_URL.replace(/\/$/, "") : "";
+const assetUrl = p => /^(images\/|https?:)/.test(p) ? p : `${SB}/storage/v1/object/public/products/${p}`;
+
+async function loadProducts() {
+  if (!SB) return FALLBACK;
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 5000);
+    const r = await fetch(`${SB}/rest/v1/products?select=name,type,thumb_path,full_path,width,height&order=sort.asc,created_at.desc`,
+      { headers: { apikey: SUPABASE_ANON_KEY }, signal: ctl.signal });
+    clearTimeout(t);
+    if (!r.ok) throw new Error(r.status);
+    const rows = await r.json();
+    return rows.map(x => ({ name: x.name, type: x.type, thumb: assetUrl(x.thumb_path), full: assetUrl(x.full_path), width: x.width || 817, height: x.height || 1100 }));
+  } catch (e) { console.warn("Using fallback products:", e); return FALLBACK; }
+}
+
 // Build grid
 const grid = $("#grid");
-PRODUCTS.forEach((p, i) => {
-  const el = document.createElement("article");
-  el.className = "item";
-  el.tabIndex = 0;
-  el.dataset.type = p.type;
-  el.style.transitionDelay = `${(i % 4) * 90}ms`;
-  el.innerHTML = `<img src="images/p${p.img}-s.webp" alt="${p.name}" loading="lazy" decoding="async" width="${(DIM[p.img]||[817,1100])[0]}" height="${(DIM[p.img]||[817,1100])[1]}">
-    <span class="tag">${label(p.type)}</span>
-    <div class="cap"><h3>${p.name}</h3><span>Tap to order</span></div>`;
-  el.addEventListener("click", () => openLB(p));
-  el.addEventListener("keydown", e => e.key === "Enter" && openLB(p));
-  grid.appendChild(el);
-});
+function renderGrid(products) {
+  grid.innerHTML = "";
+  products.forEach((p, i) => {
+    const el = document.createElement("article");
+    el.className = "item";
+    el.tabIndex = 0;
+    el.dataset.type = p.type;
+    el.style.transitionDelay = `${(i % 4) * 90}ms`;
+    el.innerHTML = `<img src="${p.thumb}" alt="" loading="lazy" decoding="async" width="${p.width}" height="${p.height}">
+      <span class="tag">${label(p.type)}</span>
+      <div class="cap"><h3></h3><span>Tap to order</span></div>`;
+    el.firstElementChild.alt = p.name;
+    el.querySelector("h3").textContent = p.name;
+    el.addEventListener("click", () => openLB(p));
+    el.addEventListener("keydown", e => e.key === "Enter" && openLB(p));
+    grid.appendChild(el);
+  });
+}
 
 // Scroll reveal
 const io = new IntersectionObserver(es => es.forEach(e => {
@@ -54,6 +69,7 @@ const io = new IntersectionObserver(es => es.forEach(e => {
 }), { threshold: .12, rootMargin: "0px 0px -40px 0px" });
 const observe = () => document.querySelectorAll(".reveal:not(.in),.item:not(.in):not(.hide)").forEach(n => io.observe(n));
 observe();
+loadProducts().then(ps => { renderGrid(ps); observe(); });
 
 // Filters
 const filters = $("#filters"), pill = $(".pill", filters);
@@ -74,7 +90,7 @@ filters.addEventListener("click", e => {
 // Lightbox
 const lb = $("#lb");
 function openLB(p) {
-  $("#lbImg").src = `images/p${p.img}.webp`;
+  $("#lbImg").src = p.full;
   $("#lbImg").alt = p.name;
   $("#lbTitle").textContent = p.name;
   $("#lbType").textContent = label(p.type);
